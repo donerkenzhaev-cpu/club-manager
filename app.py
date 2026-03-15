@@ -1,16 +1,50 @@
+
+@app.route('/login', methods=['GET','POST'])
+def login():
+    error = ''
+    if request.method == 'POST':
+        pwd = request.form.get('password','')
+        if pwd == APP_PASSWORD:
+            session['logged_in'] = True
+            return redirect('/')
+        else:
+            error = 'Неверный пароль!'
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
+
 """
 Club Manager - Web Version
 Flask backend with SQLite database
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import sqlite3
 import os
 from datetime import datetime
+from functools import wraps
 
 app = Flask(__name__)
+app.secret_key = 'clubmanager_secret_key_2024'
+
+APP_PASSWORD = '123qwe'
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'club_manager.db')
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('logged_in'):
+            if request.is_json:
+                return jsonify({'error': 'Unauthorized'}), 401
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated
 
 
 # ─────────────────────── DATABASE ────────────────────────────────
@@ -110,6 +144,7 @@ def calculate_totals(session):
 # ─────────────────────── PAGES ───────────────────────────────────
 
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
@@ -117,6 +152,7 @@ def index():
 # ─────────────────────── API: SETTINGS ───────────────────────────
 
 @app.route('/api/settings', methods=['GET'])
+@login_required
 def get_settings():
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM settings").fetchall()
@@ -124,6 +160,7 @@ def get_settings():
 
 
 @app.route('/api/settings', methods=['POST'])
+@login_required
 def save_settings():
     data = request.json
     with get_db() as conn:
@@ -136,6 +173,7 @@ def save_settings():
 # ─────────────────────── API: TABLES ─────────────────────────────
 
 @app.route('/api/tables', methods=['GET'])
+@login_required
 def get_tables():
     table_type = request.args.get('type')
     with get_db() as conn:
@@ -166,6 +204,7 @@ def get_tables():
 
 
 @app.route('/api/tables', methods=['POST'])
+@login_required
 def add_table():
     data = request.json
     name = data.get('name', '').strip()
@@ -190,6 +229,7 @@ def add_table():
 
 
 @app.route('/api/tables/<int:tid>', methods=['PUT'])
+@login_required
 def update_table(tid):
     data = request.json
     name = data.get('name', '').strip()
@@ -202,6 +242,7 @@ def update_table(tid):
 
 
 @app.route('/api/tables/<int:tid>', methods=['DELETE'])
+@login_required
 def delete_table(tid):
     with get_db() as conn:
         active = conn.execute(
@@ -217,6 +258,7 @@ def delete_table(tid):
 # ─────────────────────── API: SESSIONS ───────────────────────────
 
 @app.route('/api/sessions/start', methods=['POST'])
+@login_required
 def start_session():
     data = request.json
     table_id = data['table_id']
@@ -248,6 +290,7 @@ def start_session():
 
 
 @app.route('/api/sessions/<int:sid>/pause', methods=['POST'])
+@login_required
 def pause_session(sid):
     now = datetime.now().isoformat()
     with get_db() as conn:
@@ -259,6 +302,7 @@ def pause_session(sid):
 
 
 @app.route('/api/sessions/<int:sid>/resume', methods=['POST'])
+@login_required
 def resume_session(sid):
     now = datetime.now()
     with get_db() as conn:
@@ -276,6 +320,7 @@ def resume_session(sid):
 
 
 @app.route('/api/sessions/<int:sid>/end', methods=['POST'])
+@login_required
 def end_session(sid):
     now = datetime.now()
     with get_db() as conn:
@@ -295,6 +340,7 @@ def end_session(sid):
 
 
 @app.route('/api/sessions/<int:sid>/reset', methods=['POST'])
+@login_required
 def reset_session(sid):
     with get_db() as conn:
         conn.execute("DELETE FROM sessions WHERE id=?", (sid,))
@@ -303,6 +349,7 @@ def reset_session(sid):
 
 
 @app.route('/api/sessions/<int:sid>/totals', methods=['GET'])
+@login_required
 def session_totals(sid):
     with get_db() as conn:
         row = conn.execute("SELECT * FROM sessions WHERE id=?", (sid,)).fetchone()
@@ -312,6 +359,7 @@ def session_totals(sid):
 
 
 @app.route('/api/sessions/history', methods=['GET'])
+@login_required
 def session_history():
     table_type = request.args.get('type', '')
     with get_db() as conn:
@@ -340,6 +388,7 @@ def session_history():
 # ─────────────────────── API: SESSION PRODUCTS ───────────────────
 
 @app.route('/api/sessions/<int:sid>/products', methods=['GET'])
+@login_required
 def get_session_products(sid):
     with get_db() as conn:
         rows = conn.execute(
@@ -349,6 +398,7 @@ def get_session_products(sid):
 
 
 @app.route('/api/sessions/<int:sid>/products', methods=['POST'])
+@login_required
 def add_session_product(sid):
     data = request.json
     subtotal = data['unit_price'] * data['quantity']
@@ -362,6 +412,7 @@ def add_session_product(sid):
 
 
 @app.route('/api/session_products/<int:item_id>', methods=['PUT'])
+@login_required
 def update_session_product(item_id):
     data = request.json
     qty = data['quantity']
@@ -378,6 +429,7 @@ def update_session_product(item_id):
 
 
 @app.route('/api/session_products/<int:item_id>', methods=['DELETE'])
+@login_required
 def delete_session_product(item_id):
     with get_db() as conn:
         conn.execute("DELETE FROM session_products WHERE id=?", (item_id,))
@@ -388,6 +440,7 @@ def delete_session_product(item_id):
 # ─────────────────────── API: PRODUCTS ───────────────────────────
 
 @app.route('/api/products', methods=['GET'])
+@login_required
 def get_products():
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
@@ -395,6 +448,7 @@ def get_products():
 
 
 @app.route('/api/products', methods=['POST'])
+@login_required
 def add_product():
     data = request.json
     name = data.get('name', '').strip()
@@ -411,6 +465,7 @@ def add_product():
 
 
 @app.route('/api/products/<int:pid>', methods=['PUT'])
+@login_required
 def update_product(pid):
     data = request.json
     with get_db() as conn:
@@ -421,6 +476,7 @@ def update_product(pid):
 
 
 @app.route('/api/products/<int:pid>', methods=['DELETE'])
+@login_required
 def delete_product(pid):
     with get_db() as conn:
         conn.execute("DELETE FROM products WHERE id=?", (pid,))
