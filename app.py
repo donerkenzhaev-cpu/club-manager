@@ -432,6 +432,53 @@ def delete_product(pid):
     return jsonify({'ok': True})
 
 
+
+# ── RECEIPT API ──
+
+@app.route('/api/sessions/<int:sid>/receipt', methods=['GET'])
+@login_required
+def get_receipt(sid):
+    with get_db() as conn:
+        row = conn.execute("""
+            SELECT s.*, g.name as table_name, g.table_type
+            FROM sessions s JOIN game_tables g ON g.id=s.table_id
+            WHERE s.id=?
+        """, (sid,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
+        session_data = dict(row)
+        products = conn.execute(
+            "SELECT * FROM session_products WHERE session_id=? ORDER BY id", (sid,)
+        ).fetchall()
+        totals = calculate_totals(session_data)
+        return jsonify({
+            'session': session_data,
+            'products': [dict(p) for p in products],
+            'totals': totals
+        })
+
+
+# ── TRANSFER SESSION API ──
+
+@app.route('/api/sessions/<int:sid>/transfer', methods=['POST'])
+@login_required
+def transfer_session(sid):
+    data = request.json
+    new_table_id = data.get('new_table_id')
+    with get_db() as conn:
+        # Check target table is free
+        active = conn.execute(
+            "SELECT id FROM sessions WHERE table_id=? AND status IN ('active','paused')",
+            (new_table_id,)
+        ).fetchone()
+        if active:
+            return jsonify({'error': 'Target table has active session'}), 400
+        # Update session table_id
+        conn.execute("UPDATE sessions SET table_id=? WHERE id=?", (new_table_id, sid))
+        conn.commit()
+    return jsonify({'ok': True})
+
+
 if __name__ == '__main__':
     init_db()
     print("\n" + "="*50)
