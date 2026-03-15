@@ -270,12 +270,14 @@ function renderSessionControls(status, session) {
     html = `
       <button class="btn-orange" onclick="pauseSession()">⏸ Пауза</button>
       <button class="btn-purple" onclick="endSession()">⏹ Завершить</button>
-      <button class="btn-red" style="grid-column:1/-1" onclick="resetSession()">🔄 Сбросить</button>`;
+      <button class="btn-blue" onclick="transferSession()">🔄 Перенести</button>
+      <button class="btn-red" onclick="resetSession()">✕ Сбросить</button>`;
   } else if (status === 'paused') {
     html = `
       <button class="btn-blue" onclick="resumeSession()">▶ Продолжить</button>
       <button class="btn-purple" onclick="endSession()">⏹ Завершить</button>
-      <button class="btn-red" style="grid-column:1/-1" onclick="resetSession()">🔄 Сбросить</button>`;
+      <button class="btn-blue" onclick="transferSession()">🔄 Перенести</button>
+      <button class="btn-red" onclick="resetSession()">✕ Сбросить</button>`;
   } else if (status === 'finished') {
     html = `<button class="btn-green" style="grid-column:1/-1" onclick="startSession()">▶ Новая сессия</button>`;
   }
@@ -327,8 +329,11 @@ async function resumeSession() {
 async function endSession() {
   if (!currentSession) return;
   confirm2('Завершить и сохранить сессию?', async () => {
-    await fetch('/api/sessions/' + currentSession.id + '/end', { method: 'POST' });
+    const sid = currentSession.id;
+    await fetch('/api/sessions/' + sid + '/end', { method: 'POST' });
     clearInterval(timerInterval);
+    // Show receipt before refreshing
+    await showReceipt(sid);
     await refreshSessionModal();
     loadTables(currentTableType);
     toast('✅ Сессия завершена!');
@@ -585,6 +590,109 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─────────────────────── RECEIPT ─────────────────────────────
+
+async function showReceipt(sessionId) {
+  const res = await fetch('/api/sessions/' + sessionId + '/receipt');
+  const data = await res.json();
+  if (data.error) return;
+
+  const modal = document.getElementById('modal-receipt');
+  const content = document.getElementById('receipt-content');
+
+  const start = new Date(data.session.start_time);
+  const end = new Date(data.session.end_time || new Date());
+  const typeLabel = data.session.table_type === 'billiard' ? '🎱 Бильярд' : '🏓 Пинг-понг';
+
+  let productsHtml = '';
+  if (data.products.length > 0) {
+    productsHtml = data.products.map(p => `
+      <div class="receipt-row">
+        <span>${p.product_name} x${p.quantity}</span>
+        <span>${fmt(p.subtotal)}</span>
+      </div>`).join('');
+  } else {
+    productsHtml = '<div class="receipt-row muted"><span>Нет товаров</span><span>—</span></div>';
+  }
+
+  content.innerHTML = `
+    <div class="receipt-header">
+      <div class="receipt-logo">🎱</div>
+      <div class="receipt-title">Club Manager</div>
+      <div class="receipt-subtitle">Чек сеанса</div>
+    </div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - -</div>
+    <div class="receipt-row"><span>Стол:</span><span>${data.session.table_name}</span></div>
+    <div class="receipt-row"><span>Тип:</span><span>${typeLabel}</span></div>
+    <div class="receipt-row"><span>Начало:</span><span>${start.toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</span></div>
+    <div class="receipt-row"><span>Конец:</span><span>${end.toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</span></div>
+    <div class="receipt-row"><span>Длительность:</span><span>${fmtTime(data.totals.elapsed_seconds)}</span></div>
+    <div class="receipt-row"><span>Тариф:</span><span>${fmt(data.session.hourly_rate)}/час</span></div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - -</div>
+    <div class="receipt-section-title">Товары</div>
+    ${productsHtml}
+    <div class="receipt-divider">- - - - - - - - - - - - - - - -</div>
+    <div class="receipt-row"><span>Время:</span><span>${fmt(data.totals.time_cost)}</span></div>
+    <div class="receipt-row"><span>Товары:</span><span>${fmt(data.totals.products_cost)}</span></div>
+    <div class="receipt-total">
+      <span>ИТОГО</span>
+      <span>${fmt(data.totals.total)}</span>
+    </div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - -</div>
+    <div class="receipt-footer">${start.toLocaleDateString('ru')} • Спасибо!</div>
+  `;
+
+  modal.classList.add('open');
+}
+
+function closeReceipt() {
+  document.getElementById('modal-receipt').classList.remove('open');
+}
+
+// ─────────────────────── TRANSFER SESSION ─────────────────────
+
+async function transferSession() {
+  if (!currentSession) return;
+
+  // Get all tables of same type
+  const res = await fetch('/api/tables?type=' + currentTableType);
+  const tables = await res.json();
+
+  // Filter: only free tables, not current
+  const freeTables = tables.filter(t => t.status === 'free' && t.id !== currentTableId);
+
+  if (freeTables.length === 0) {
+    toast('⚠️ Нет свободных столов для переноса');
+    return;
+  }
+
+  // Fill transfer modal
+  const sel = document.getElementById('transfer-select');
+  sel.innerHTML = freeTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('modal-transfer').classList.add('open');
+}
+
+async function confirmTransfer() {
+  const newTableId = parseInt(document.getElementById('transfer-select').value);
+  if (!newTableId || !currentSession) return;
+
+  const res = await fetch('/api/sessions/' + currentSession.id + '/transfer', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({new_table_id: newTableId})
+  });
+  const data = await res.json();
+  if (data.error) { toast('⚠️ ' + data.error); return; }
+
+  document.getElementById('modal-transfer').classList.remove('open');
+  closeSessionModal();
+
+  // Open new table session
+  currentTableId = newTableId;
+  await openSession(newTableId, currentTableType);
+  toast('✅ Сеанс перенесён!');
 }
 
 // ─────────────────────── AUTO REFRESH ─────────────────────────
