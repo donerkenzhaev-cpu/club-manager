@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1d27">
+<title>Club Manager — Вход</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a1d27;
+  color: #dce1ec;
+  font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-box {
+  background: #252a3d;
+  border: 1px solid #3a4060;
+  border-radius: 16px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.logo { font-size: 48px; margin-bottom: 12px; }
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  color: #8892a4;
+  font-size: 13px;
+  margin-bottom: 28px;
+}
+
+input[type="password"] {
+  width: 100%;
+  background: #1a1d27;
+  color: #dce1ec;
+  border: 1px solid #3a4060;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 16px;
+  margin-bottom: 14px;
+  text-align: center;
+  letter-spacing: 4px;
+}
+
+input[type="password"]:focus {
+  outline: none;
+  border-color: #3ddc84;
+}
+
+button {
+  width: 100%;
+  background: #3ddc84;
+  color: #111;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover { background: #2ecc71; }
+
+.error {
+  background: #c0392b22;
+  border: 1px solid #c0392b;
+  border-radius: 8px;
+  padding: 10px;
+  color: #e74c3c;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+</style>
+</head>
+<body>
+<div class="login-box">
+  <div class="logo">🎱</div>
+  <h1>Club Manager</h1>
+  <div class="subtitle">Введите пароль для входа</div>
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST">
+    <input type="password" name="password" placeholder="••••••" autofocus>
+    <button type="submit">Войти</button>
+  </form>
+</div>
+</body>
+</html>
