@@ -599,3 +599,55 @@ label {
 }
 
 .empty-icon { font-size: 48px; margin-bottom: 10px; }
+
+/* ── Receipt ── */
+.receipt-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.receipt-logo { font-size: 36px; }
+.receipt-title { font-size: 18px; font-weight: 700; margin-top: 4px; }
+.receipt-subtitle { font-size: 12px; color: var(--muted); }
+.receipt-divider {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 8px 0;
+  letter-spacing: 1px;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 3px 0;
+}
+.receipt-row.muted { color: var(--muted); }
+.receipt-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 6px 0 4px;
+}
+.receipt-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 8px 0;
+}
+.receipt-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  #modal-receipt, #modal-receipt * { visibility: visible; }
+  #modal-receipt { position: fixed; top: 0; left: 0; width: 100%; }
+  .btn-row { display: none; }
+}
