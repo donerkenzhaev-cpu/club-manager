@@ -1,0 +1,22 @@
+{
+  "name": "Club Manager",
+  "short_name": "ClubManager",
+  "description": "Управление бильярдным клубом и пинг-понгом",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1d27",
+  "theme_color": "#1a1d27",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/img/billiard_table.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/img/billiard_table.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

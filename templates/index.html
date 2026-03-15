@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1d27">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Club Manager">
+<title>Club Manager</title>
+<link rel="manifest" href="/static/manifest.json">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ── BOTTOM NAV ── -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('billiard')" id="nav-billiard">
+    <span class="nav-icon">🎱</span>
+    <span class="nav-label">Бильярд</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('table_tennis')" id="nav-table_tennis">
+    <span class="nav-icon">🏓</span>
+    <span class="nav-label">Пинг-понг</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('history')" id="nav-history">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">История</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('products')" id="nav-products">
+    <span class="nav-icon">🛒</span>
+    <span class="nav-label">Товары</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('settings')" id="nav-settings">
+    <span class="nav-icon">⚙</span>
+    <span class="nav-label">Настройки</span>
+  </button>
+</nav>
+
+<!-- ── PAGES ── -->
+<div class="pages">
+
+  <!-- BILLIARD PAGE -->
+  <div class="page active" id="page-billiard">
+    <div class="page-header">
+      <h1>🎱 Бильярдные столы</h1>
+      <button class="btn-add" onclick="openAddTableModal('billiard')">＋ Добавить</button>
+    </div>
+    <div class="tables-grid" id="grid-billiard"></div>
+  </div>
+
+  <!-- TABLE TENNIS PAGE -->
+  <div class="page" id="page-table_tennis">
+    <div class="page-header">
+      <h1>🏓 Столы пинг-понга</h1>
+      <button class="btn-add" onclick="openAddTableModal('table_tennis')">＋ Добавить</button>
+    </div>
+    <div class="tables-grid" id="grid-table_tennis"></div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="page-header"><h1>📋 История</h1></div>
+    <div class="filter-row">
+      <select id="history-filter" onchange="loadHistory()">
+        <option value="">Все типы</option>
+        <option value="billiard">Бильярд</option>
+        <option value="table_tennis">Пинг-понг</option>
+      </select>
+    </div>
+    <div class="summary-card" id="history-summary"></div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- PRODUCTS PAGE -->
+  <div class="page" id="page-products">
+    <div class="page-header"><h1>🛒 Каталог товаров</h1></div>
+    <div class="add-product-form card">
+      <input type="text" id="prod-name" placeholder="Название товара" maxlength="50">
+      <input type="number" id="prod-price" placeholder="Цена" min="0" step="0.01">
+      <button class="btn-green" onclick="saveProduct()">💾 Сохранить</button>
+      <button class="btn-gray" onclick="clearProductForm()">✕ Очистить</button>
+    </div>
+    <div id="products-list"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="page-header"><h1>⚙ Настройки</h1></div>
+    <div class="card">
+      <label>Цена бильярда (в час)</label>
+      <input type="number" id="set-billiard-rate" min="0" step="0.01">
+      <label>Цена пинг-понга (в час)</label>
+      <input type="number" id="set-tt-rate" min="0" step="0.01">
+      <label>Валюта</label>
+      <select id="set-currency">
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+        <option value="UZS">UZS (сум)</option>
+        <option value="RUB">RUB (₽)</option>
+        <option value="KZT">KZT (₸)</option>
+      </select>
+      <button class="btn-green" onclick="saveSettings()">💾 Сохранить настройки</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Add Table Modal -->
+<div class="modal" id="modal-add-table">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-add-title">Добавить стол</h2>
+      <button class="modal-close" onclick="closeModal('modal-add-table')">✕</button>
+    </div>
+    <input type="text" id="new-table-name" placeholder="Название (напр. Стол 1)" maxlength="30">
+    <input type="number" id="new-table-rate" placeholder="Цена в час (0 = по умолчанию)" min="0" step="0.01">
+    <input type="hidden" id="new-table-type">
+    <button class="btn-green btn-full" onclick="addTable()">＋ Добавить</button>
+  </div>
+</div>
+
+<!-- Session Modal -->
+<div class="modal" id="modal-session">
+  <div class="modal-box modal-large">
+    <div class="modal-header">
+      <h2 id="sess-title">Сессия</h2>
+      <button class="modal-close" onclick="closeSessionModal()">✕</button>
+    </div>
+
+    <div class="sess-image-wrap">
+      <img id="sess-image" src="" alt="table">
+    </div>
+
+    <!-- Status badge -->
+    <div class="sess-status-row">
+      <span id="sess-status-badge" class="badge badge-free">Свободен</span>
+      <span id="sess-rate-label" class="rate-label"></span>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-block">
+      <div class="timer-label">Время сессии</div>
+      <div class="timer-display" id="sess-timer">00:00:00</div>
+    </div>
+
+    <!-- Cost summary -->
+    <div class="cost-block">
+      <div class="cost-row"><span>Время:</span><span id="sess-time-cost">—</span></div>
+      <div class="cost-row"><span>Товары:</span><span id="sess-prod-cost">—</span></div>
+      <div class="cost-row total-row"><span>ИТОГО:</span><span id="sess-total">—</span></div>
+    </div>
+
+    <!-- Session controls -->
+    <div class="sess-controls" id="sess-controls"></div>
+
+    <!-- Products section -->
+    <div id="sess-products-section" style="display:none">
+      <div class="section-title">Товары в сессии</div>
+      <div class="add-prod-row">
+        <select id="sess-prod-select"></select>
+        <input type="number" id="sess-prod-qty" value="1" min="1" max="99" style="width:60px">
+        <button class="btn-green" onclick="addProductToSession()">＋</button>
+      </div>
+      <div id="sess-products-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal" id="modal-confirm">
+  <div class="modal-box">
+    <p id="confirm-text"></p>
+    <div class="btn-row">
+      <button class="btn-gray" onclick="closeModal('modal-confirm')">Отмена</button>
+      <button class="btn-red" id="confirm-ok-btn">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
