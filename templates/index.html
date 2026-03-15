@@ -182,6 +182,37 @@
   </div>
 </div>
 
+<!-- Receipt Modal -->
+<div class="modal" id="modal-receipt">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>🧾 Чек</h2>
+      <button class="modal-close" onclick="closeReceipt()">✕</button>
+    </div>
+    <div id="receipt-content"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn-gray" onclick="window.print()">🖨️ Печать</button>
+      <button class="btn-green" onclick="closeReceipt()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal" id="modal-transfer">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>🔄 Перенести сеанс</h2>
+      <button class="modal-close" onclick="closeModal('modal-transfer')">✕</button>
+    </div>
+    <p style="color:#8892a4;font-size:13px;margin-bottom:12px">Выберите стол на который перенести активный сеанс:</p>
+    <select id="transfer-select" style="margin-bottom:16px"></select>
+    <div class="btn-row">
+      <button class="btn-gray" onclick="closeModal('modal-transfer')">Отмена</button>
+      <button class="btn-green" onclick="confirmTransfer()">🔄 Перенести</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
